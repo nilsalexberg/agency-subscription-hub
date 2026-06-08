@@ -6,6 +6,6 @@ RUN pip install poetry
 RUN poetry config virtualenvs.create false
 
 COPY pyproject.toml poetry.lock ./
-RUN poetry install --only main
+RUN poetry install --only main --no-root
 
 COPY . .
