@@ -8,7 +8,17 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
 
 from app.models import Base  # noqa: F401 — registers all models
-from app.models import User  # noqa: F401
+from app.models import (  # noqa: F401 — all models must be imported to populate metadata
+    AuditLog,
+    Client,
+    Payment,
+    Plan,
+    Recipient,
+    SplitConfig,
+    SplitConfigRecipient,
+    User,
+    WebhookEvent,
+)
 from app.core.config import settings
 
 config = context.config

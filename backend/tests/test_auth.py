@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.user import Role, User
 
 
-# ── POST /auth/login ───────────────────────────────────────────────────────
+# ── POST /api/auth/login ───────────────────────────────────────────────────────
 
 
 @pytest.mark.asyncio
@@ -22,7 +22,7 @@ async def test_login_success(client, db_session: AsyncSession):
     await db_session.refresh(user)
 
     with patch("app.api.auth.verify_password", return_value=True):
-        res = await client.post("/auth/login", json={"email": "admin@test.com", "password": "pass123"})
+        res = await client.post("/api/auth/login", json={"email": "admin@test.com", "password": "pass123"})
     assert res.status_code == 200
     assert "access_token" in res.json()
 
@@ -39,13 +39,13 @@ async def test_login_wrong_password(client, db_session: AsyncSession):
     await db_session.commit()
 
     with patch("app.api.auth.verify_password", return_value=False):
-        res = await client.post("/auth/login", json={"email": "admin@test.com", "password": "wrong"})
+        res = await client.post("/api/auth/login", json={"email": "admin@test.com", "password": "wrong"})
     assert res.status_code == 401
 
 
 @pytest.mark.asyncio
 async def test_login_unknown_email(client):
-    res = await client.post("/auth/login", json={"email": "ghost@test.com", "password": "x"})
+    res = await client.post("/api/auth/login", json={"email": "ghost@test.com", "password": "x"})
     assert res.status_code == 401
 
 
@@ -61,11 +61,11 @@ async def test_login_inactive_user(client, db_session: AsyncSession):
     await db_session.commit()
 
     with patch("app.api.auth.verify_password", return_value=True):
-        res = await client.post("/auth/login", json={"email": "inactive@test.com", "password": "pass123"})
+        res = await client.post("/api/auth/login", json={"email": "inactive@test.com", "password": "pass123"})
     assert res.status_code == 403
 
 
-# ── POST /auth/register ────────────────────────────────────────────────────
+# ── POST /api/auth/register ────────────────────────────────────────────────────
 
 
 @pytest.mark.asyncio
@@ -73,7 +73,7 @@ async def test_register_first_user_becomes_admin(client, db_session: AsyncSessio
     # Database is empty at start of test
     with patch("app.services.user.hash_password", return_value="hashed_pass123"):
         res = await client.post(
-            "/auth/register",
+            "/api/auth/register",
             json={"email": "admin@test.com", "password": "pass123"},
         )
     assert res.status_code == 201
@@ -103,7 +103,7 @@ async def test_register_closed_when_user_exists(client, db_session: AsyncSession
 
     # Try to register second user
     res = await client.post(
-        "/auth/register",
+        "/api/auth/register",
         json={"email": "second@test.com", "password": "pass123"},
     )
     assert res.status_code == 403

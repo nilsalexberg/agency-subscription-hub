@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import enum
 
 from sqlalchemy import Enum, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from .base import Base
+from .base import Base, TimestampMixin
 
 
 class Role(str, enum.Enum):
@@ -11,7 +13,7 @@ class Role(str, enum.Enum):
     VIEWER = "viewer"
 
 
-class User(Base):
+class User(Base, TimestampMixin):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True)
