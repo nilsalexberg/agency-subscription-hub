@@ -10,19 +10,9 @@ Targets: Plans, Recipients, Split Configs, Clients, Payments (read-only), Histor
 
 ## Phase 1 — Backend: Router Factory
 
-### Step 1 — Define the resource registration contract
+### ~~Step 1 — Define the resource registration contract~~ ✅
 
-Each config entry specifies:
-- SQLAlchemy model class
-- Pydantic read schema
-- Pydantic write schema
-- URL prefix string
-- Optional search field name (column used for `q` param)
-- Optional override map
-
-Override map keys: `list`, `retrieve`, `create`, `update`, `delete`. Each value is either `None` (use default) or a custom FastAPI path function that fully replaces the default. Custom handlers receive the same dependency-injected arguments.
-
-Document this contract before implementation so frontend and backend configs can be designed in parallel.
+`app/admin/contracts.py` — pure type definitions, no implementation. Exports `ResourceConfig` (model class, read/write Pydantic schemas, URL prefix, optional search field, optional `RelationLoadConfig` list, optional `OverrideMap`), `RelationLoadConfig` (frozen dataclass: SQLAlchemy attribute name + display field to serialize alongside FK in list responses), `Operation` literal, and `OverrideMap` alias. `None`/absent override key = use factory default; non-`None` callable = full replacement.
 
 ### Step 2 — Implement the router factory function
 
