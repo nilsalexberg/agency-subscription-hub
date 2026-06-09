@@ -6,6 +6,8 @@
     "module": "esnext",
     "types": ["vite/client"],
     "skipLibCheck": true,
+    // TypeScript 7.0 does not support deprecated options
+    // "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]

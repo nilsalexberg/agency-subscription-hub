@@ -6,8 +6,8 @@ type Role = 'admin' | 'viewer'
 interface User {
   id: number
   email: string
-  name: string
   role: Role
+  is_active: boolean
 }
 
 interface AuthState {

@@ -28,6 +28,19 @@
   --color-danger-light: #FEF2F2;
   --color-info: #0284C7;
   --color-info-light: #EFF6FF;
+
+  --animate-auth-fade-up: authFadeUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes authFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 * {
