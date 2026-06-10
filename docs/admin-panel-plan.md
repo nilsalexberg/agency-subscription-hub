@@ -22,19 +22,21 @@ Default handlers: async SQLAlchemy session via `DB` DI. List uses `skip`/`limit`
 
 Auth applied at route level: `Depends(get_current_user)` on list/retrieve, `Depends(require_admin)` on create/update/delete — enforced even for override handlers.
 
-### Step 3 — Build the central backend resource registry
+### ~~Step 3 — Build the central backend resource registry~~ ✅
 
-Single file (`app/resources.py`) imports all models and schemas, defines resource config list, iterates it to register each router on the FastAPI app. `app/main.py` calls this registration function.
+`app/resources.py` defines `RESOURCE_CONFIGS` (7 entries: Recipients, SplitConfigs, Plans, Clients, Payments, AuditLogs, Users) and `register_admin_resources(app)`, which iterates the list and mounts each generated router under `/admin`. `app/main.py` calls this on startup.
 
-No router setup lives outside these two files. Custom endpoints not covered by the factory (e.g., checkout-link generation) are imported separately and mounted alongside the generated router under the same prefix.
+Read-only resources (Payments, AuditLog) override create/update/delete with `_method_not_allowed` → 405. Users override create only (password-based creation stays in auth). Writable resources (Recipients, SplitConfigs, Plans, Clients) have no write overrides. Plans and Clients declare `RelationLoadConfig` for FK display fields (split_config name, plan name).
 
-### Step 4 — Handle relation-aware list responses
+Pydantic schemas added in `app/schemas/`: `plan`, `recipient`, `split_config`, `client`, `payment`, `audit_log`. `UserAdminWrite` added to `schemas/user.py` (email + role + is_active, no password). Tested in `tests/test_resources.py`: registry structure, all 7 list routes return 401 (not 404), read-only 405 enforcement, user create 405, read-only list still returns 200.
 
-Use Option A: factory accepts optional relation load configs (model attribute name + display field name). Generated list handler uses `selectinload` for those relationships and serializes the display field alongside the FK. Keeps network round-trips minimal and frontend config simple.
+### ~~Step 4 — Handle relation-aware list responses~~ ✅
 
-### Step 5 — Apply auth and permission middleware
+Implemented in factory (Step 2): `RelationLoadConfig` list in `ResourceConfig`, `selectinload` per relation, display field serialized as `{attribute}_{display_field}` key alongside FK. Plans include `split_config_name`; Clients include `plan_name`.
 
-Generated routes must pass through existing JWT auth dependency and role-based access control. Apply correct `dependencies` at router level — no generated route should be accidentally public. Distinguish admin-only routes (create, update, delete) from viewer-accessible routes (list, retrieve).
+### ~~Step 5 — Apply auth and permission middleware~~ ✅
+
+Implemented in factory (Step 2): `Depends(get_current_user)` on list/retrieve routes; `Depends(require_admin)` on create/update/delete routes. Applied via `dependencies=[...]` at route registration — enforced even for override handlers.
 
 ---
 

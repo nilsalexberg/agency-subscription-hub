@@ -21,3 +21,11 @@ class UserRead(BaseModel):
     is_active: bool
 
     model_config = {"from_attributes": True}
+
+
+class UserAdminWrite(BaseModel):
+    """Write schema for admin panel user management. Password changes are handled separately."""
+
+    email: EmailStr
+    role: Role
+    is_active: bool
