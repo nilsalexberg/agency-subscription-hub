@@ -14,18 +14,13 @@ Targets: Plans, Recipients, Split Configs, Clients, Payments (read-only), Histor
 
 `app/admin/contracts.py` — pure type definitions, no implementation. Exports `ResourceConfig` (model class, read/write Pydantic schemas, URL prefix, optional search field, optional `RelationLoadConfig` list, optional `OverrideMap`), `RelationLoadConfig` (frozen dataclass: SQLAlchemy attribute name + display field to serialize alongside FK in list responses), `Operation` literal, and `OverrideMap` alias. `None`/absent override key = use factory default; non-`None` callable = full replacement.
 
-### Step 2 — Implement the router factory function
+### ~~Step 2 — Implement the router factory function~~ ✅
 
-Factory accepts one resource config entry, returns `APIRouter` with five routes:
-- `GET /` — list with pagination, optional sort, optional search
-- `GET /{id}` — retrieve one
-- `POST /` — create
-- `PUT /{id}` — update
-- `DELETE /{id}` — delete
+`app/admin/factory.py` — `build_router(config)` returns `APIRouter` with five CRUD routes. Each operation checks `config.overrides` first; a non-`None` callable replaces the default handler.
 
-For each operation: check override map, register custom handler if present, otherwise register default. Defaults use async SQLAlchemy session via DI, `skip`/`limit` for pagination, `ilike` on search field when `q` param present, 404 when record not found.
+Default handlers: async SQLAlchemy session via `DB` DI. List uses `skip`/`limit`, `ilike` search on `search_field`, safe sort (unknown `sort_by` falls back to PK), separate `func.count()` query for total, `selectinload` for each `RelationLoadConfig` with display field serialized as `{attribute}_{display_field}` key. Retrieve/update/delete look up by PK via `sa_inspect` (no hardcoded `model.id`), return 404 if missing. Create/update accept dynamic body type via post-definition `__annotations__["body"] = write_schema` patch — `from __future__ import annotations` intentionally absent so FastAPI resolves the patched type correctly.
 
-Factory must not import any resource-specific module — operates purely on the model class and schemas passed in.
+Auth applied at route level: `Depends(get_current_user)` on list/retrieve, `Depends(require_admin)` on create/update/delete — enforced even for override handlers.
 
 ### Step 3 — Build the central backend resource registry
 
