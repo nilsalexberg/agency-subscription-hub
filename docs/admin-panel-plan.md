@@ -66,17 +66,19 @@ Internal fetch functions map `ListParams` (`page/pageSize/search/sortBy/sortOrde
 
 ## Phase 4 — Frontend: Generic Components
 
-### Step 9 — Implement the List view component
+### ~~Step 9 — Implement the List view component~~ ✅
 
-Accepts resource config, uses `useResource` internally. Columns derived from fields where `showInList` is true. Relation fields render resolved label (from Step 4), not raw FK. Fields with `renderCell` overrides use the override function.
+`frontend/src/components/admin/ResourceList.tsx` — `ResourceList({ config })` accepts `ResourceConfig`, drives all state internally.
 
-Renders:
-- Debounced search input (only if any field has `filterable: true`)
-- Sortable column headers (toggle sort direction, re-fetch)
-- Pagination controls (prev/next, page size selector)
-- Per-row: Edit button (navigate to form), Delete button (inline confirm → remove mutation), extra actions (dropdown if more than two)
-
-Deletion uses inline "confirm?" state on the button row — no modal.
+- List params (`page`, `pageSize`, `search`, `sortBy`, `sortOrder`) held in component state; passed to `useResource` as `listParams`.
+- Search input debounced 300 ms via inline `useDebounce`; rendered only when any field has `filterable: true`. Resets page on change.
+- Column headers from `fields` where `showInList: true`. Sortable fields render a `<button>` with `SortIndicator` (chevron icons); clicking toggles direction or switches column.
+- Relation cell values resolved by reading `{attribute}_{labelField}` key from the record (attribute = `field.key` with `_id` suffix stripped). Falls back to raw value. `renderCell` override takes priority over all resolution logic.
+- Read-only detection: resources with no `showInForm` field (Payments, AuditLog) get no Edit/Delete buttons.
+- Inline delete confirmation: clicking trash sets `confirmDeleteId`; row shows "Delete? Yes / No" in-place. No modal.
+- Extra actions: 1–2 render as inline `Button`s; 3+ render in `ActionsDropdown` (self-contained sub-component with per-instance open state and click-outside listener).
+- Pagination: prev/next buttons, rows-per-page `Select` (10/20/50/100), "X–Y of Z" counter.
+- Loading state: full-width centered `Spinner`. Error state: inline danger alert with message.
 
 ### Step 10 — Implement the Form component
 
