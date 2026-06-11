@@ -42,68 +42,25 @@ Implemented in factory (Step 2): `Depends(get_current_user)` on list/retrieve ro
 
 ## Phase 2 — Frontend: TypeScript Types
 
-### Step 6 — Define the field descriptor type
+### ~~Step 6 — Define the field descriptor type~~ ✅
 
-```typescript
-interface FieldDescriptor {
-  key: string;
-  label: string;
-  type: 'text' | 'email' | 'number' | 'boolean' | 'select' | 'date' | 'textarea' | 'relation';
-  showInList: boolean;
-  showInForm: boolean;
-  showInDetail: boolean;
-  required: boolean;
-  sortable: boolean;
-  filterable: boolean;
-  readonly: boolean;
-  selectOptions?: { label: string; value: string | number }[];
-  relation?: {
-    resource: string;
-    labelField: string;
-    valueField: string;
-  };
-  renderCell?: (record: unknown) => React.ReactNode;
-  renderInput?: (field: FieldDescriptor, form: unknown) => React.ReactNode;
-}
-```
+`frontend/src/types/resource.ts` exports `FieldDescriptor`: key, label, field type union (`text | email | number | boolean | select | date | textarea | relation`), display flags (`showInList/Form/Detail`), validation flags (`required`, `readonly`), UX flags (`sortable`, `filterable`), optional `selectOptions`, optional `relation` (resource + labelField + valueField), and escape hatches `renderCell` / `renderInput`.
 
-### Step 7 — Define the resource config type
+### ~~Step 7 — Define the resource config type~~ ✅
 
-```typescript
-interface ResourceConfig {
-  key: string;
-  label: string;
-  pluralLabel: string;
-  endpoint: string;
-  fields: FieldDescriptor[];
-  relatedLists: {
-    label: string;
-    resource: string;
-    foreignKey: string;
-    fields: FieldDescriptor[];
-  }[];
-  extraActions: {
-    label: string;
-    variant: string;
-    action: (record: unknown) => void;
-  }[];
-}
-```
+`frontend/src/types/resource.ts` exports `ResourceConfig`: key, label, pluralLabel, endpoint, `fields` array of `FieldDescriptor`, `relatedLists` array (label + resource + foreignKey + fields), and `extraActions` array (label + variant + action callback).
 
 ---
 
 ## Phase 3 — Frontend: Shared Data Hook
 
-### Step 8 — Implement the useResource hook
+### ~~Step 8 — Implement the useResource hook~~ ✅
 
-Single hook used by all three views. Wraps TanStack Query, accepts resource endpoint string, exposes:
-- `list(params)` — paginated fetch with sort, search, filter; returns `{ data, total, page, pageSize }`
-- `getOne(id)` — fetch single record
-- `create(payload)` — POST + invalidate list cache
-- `update(id, payload)` — PUT + invalidate list and detail caches
-- `remove(id)` — DELETE + invalidate list cache
+`frontend/src/hooks/useResource.ts` — `useResource<T>(endpoint, options?)` accepts endpoint string and optional `{ listParams?, id? }`. Returns `{ list, detail, create, update, remove }`.
 
-Mutations use `useMutation`; reads use `useQuery`. Network errors surface as thrown exceptions. Single point of contact with the API for all generic views.
+`list` and `detail` are `useQuery` results (enabled only when their respective option is provided). `create`, `update`, `remove` are `useMutation` instances. All three mutation success handlers call `queryClient.invalidateQueries` to keep caches in sync — `update` and `remove` also invalidate the detail cache.
+
+Internal fetch functions map `ListParams` (`page/pageSize/search/sortBy/sortOrder/filters`) to backend params (`skip/limit/q/sort_by/sort_dir`). Backend response shape `{ items, total }` is unwrapped into `ListResult<T>` (`{ data, total, page, pageSize }`). Errors propagate as thrown exceptions — no silent failures. `apiClient` from `api/client.ts` handles auth headers and 401 logout.
 
 ---
 
