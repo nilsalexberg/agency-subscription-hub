@@ -31,7 +31,7 @@ function SortIndicator({
   )
 }
 
-function resolveCellValue(field: FieldDescriptor, record: Record<string, unknown>): React.ReactNode {
+export function resolveCellValue(field: FieldDescriptor, record: Record<string, unknown>): React.ReactNode {
   if (field.renderCell) {
     return field.renderCell(record)
   }

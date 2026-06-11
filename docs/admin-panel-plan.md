@@ -80,22 +80,17 @@ Internal fetch functions map `ListParams` (`page/pageSize/search/sortBy/sortOrde
 - Pagination: prev/next buttons, rows-per-page `Select` (10/20/50/100), "X–Y of Z" counter.
 - Loading state: full-width centered `Spinner`. Error state: inline danger alert with message.
 
-### Step 10 — Implement the Form component
+### ~~Step 10 — Implement the Form component~~ ✅
 
-Handles create and edit via `mode` prop. Edit mode receives record id and fetches existing record to pre-populate.
+`frontend/src/components/admin/ResourceForm.tsx` — `ResourceForm({ config, mode })` accepts `ResourceConfig` and `'create' | 'edit'`. Edit mode reads `:id` from URL params via `useParams`, fetches the record with `useResource`, and populates the form via `reset()` on load.
 
-Input type auto-selected from field `type`:
-- `text`, `email`, `number`, `date` → matching HTML input
-- `textarea` → Textarea component
-- `boolean` → Checkbox component
-- `select` → Select component with `selectOptions`
-- `relation` → async Select: fetches target resource list on mount, maps to `{ label, value }` pairs
+Zod schema built dynamically in `buildZodSchema`: boolean fields → `z.boolean()`, number fields → `z.coerce.number()`, all others → `z.string()` (with `.min(1, 'Required')` when `required: true`). Schema is memoized. React Hook Form wired via `zodResolver`.
 
-`readonly` fields render as read-only text in all modes. `renderInput` overrides replace the input entirely.
+Input rendering dispatches on `field.type`: `boolean` → `Checkbox` via `Controller`; `textarea` → `Textarea`; `select` → native `Select` with `selectOptions`; `relation` → `RelationSelect` (see below) via `Controller`; `number` → `Input type="number"`; all others → `Input` with matching HTML type. `readonly` fields render as static text. `renderInput` escape hatch replaces the input entirely when set.
 
-Validation: React Hook Form + Zod. Schema derived dynamically from field descriptors — required fields get `.min(1)`/`.nonempty()`, numbers get `z.number()`, booleans get `z.boolean()`, others get `z.string()`.
+`frontend/src/components/admin/RelationSelect.tsx` — controlled `Select` that calls `useResource` to fetch the related resource list (up to 100 rows), renders options as `{ labelField: valueField }` pairs, shows "Loading…" while fetching.
 
-On success: navigate back to list. On error: display inline messages.
+On submit: `create.mutateAsync` or `update.mutateAsync` then navigate to `/${config.key}`. Mutation errors shown via inline `Alert`. Loading/error states for the detail fetch handled before rendering the form.
 
 ### Step 11 — Implement the Detail view component
 
