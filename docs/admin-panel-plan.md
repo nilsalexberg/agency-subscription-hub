@@ -120,9 +120,11 @@ Seven resource config files created under `src/resources/`: `recipients.ts`, `sp
 
 All 7 resources fully implemented end-to-end. Backend models, Pydantic schemas, and `ResourceConfig` entries existed from Steps 1–5. Frontend `ResourceConfig` constants existed from Step 13. All 12 stub page components under `frontend/src/pages/` (clients, history, payments, plans, recipients, split-configs, users) deleted — the generic `ResourceList`, `ResourceDetail`, and `ResourceForm` components handle all routing via the `RESOURCES` registry. Backend tests: 21/21 pass. TypeScript: no errors.
 
-### Step 16 — Verify escape hatches end-to-end
+### ~~Step 16 — Verify escape hatches end-to-end~~ ✅
 
-Test per-field `renderCell` and `renderInput` overrides in list and form components. Test that a backend override handler fully replaces the default (e.g., Client create calls Efí for checkout link instead of generic insert). Confirm a fully custom page can coexist with generated resources in the sidebar.
+**Backend** (`tests/test_escape_hatches.py`, 10 tests): All five CRUD operations verified with custom override handlers. Confirms override fully replaces default (DB untouched when override doesn't write), auth is always enforced at route level regardless of override, `None` in override map falls back to factory default, domain-level create override (Efí pattern) can perform custom logic + DB insert, and override handlers can raise `HTTPException` normally.
+
+**Frontend** (`src/components/admin/__tests__/resolveCellValue.test.ts`, `ResourceForm.test.tsx`, `src/components/layout/__tests__/Sidebar.test.tsx`, 18 tests): `renderCell` override verified as priority path over relation resolution, boolean rendering, and raw value fallback. `renderInput` override verified to render custom element, suppress default input, receive correct `FieldDescriptor` and form methods, and support multiple independent overrides per form. Sidebar coexistence verified: hardcoded Dashboard and Settings entries render correctly alongside 0–7 dynamically generated resource links.
 
 ---
 
