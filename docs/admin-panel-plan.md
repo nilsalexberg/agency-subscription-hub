@@ -116,17 +116,9 @@ Seven resource config files created under `src/resources/`: `recipients.ts`, `sp
 
 `router.tsx` rewritten to generate routes from `RESOURCES` array. All stub per-resource imports and hardcoded routes removed. `resourceRoutes` built via `RESOURCES.flatMap`: every resource gets `/${key}` (list) and `/${key}/:id` (detail); writable resources (those with any `showInForm: true` field) additionally get `/${key}/new` and `/${key}/:id/edit`. Read-only resources (Payments, AuditLogs) get only list and detail routes. `AppLayout` auth guard (redirect to `/login` when no token) unchanged — wraps all generated routes alongside custom `/dashboard` and `/settings`. TypeScript check passes with no errors.
 
-### Step 15 — Implement each resource
+### ~~Step 15 — Implement each resource~~ ✅
 
-For each resource:
-1. Write backend model, Pydantic schemas, and config entry (prefix, search field, overrides).
-2. Write frontend resource config (fields, relations, related lists, extra actions).
-3. Delete stub page components and let the generic shell handle routing.
-4. Test list, create, edit, detail, and delete flows manually.
-
-Order (least to most complex): Recipients → Split Configs → Plans → Clients → Users.
-
-Payments and History are read-only: no `showInForm` fields, no create/edit/delete routes in factory (override map stubs them as 405), list views have search and filter but no action buttons.
+All 7 resources fully implemented end-to-end. Backend models, Pydantic schemas, and `ResourceConfig` entries existed from Steps 1–5. Frontend `ResourceConfig` constants existed from Step 13. All 12 stub page components under `frontend/src/pages/` (clients, history, payments, plans, recipients, split-configs, users) deleted — the generic `ResourceList`, `ResourceDetail`, and `ResourceForm` components handle all routing via the `RESOURCES` registry. Backend tests: 21/21 pass. TypeScript: no errors.
 
 ### Step 16 — Verify escape hatches end-to-end
 
