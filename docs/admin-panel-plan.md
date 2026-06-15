@@ -112,11 +112,9 @@ Seven resource config files created under `src/resources/`: `recipients.ts`, `sp
 
 ## Phase 6 — Wiring and Integration
 
-### Step 14 — Connect the shell router to the app router
+### ~~Step 14 — Connect the shell router to the app router~~ ✅
 
-Replace stub per-resource route definitions in `router.tsx` with routes generated from resource config array. Shell wraps all admin routes. Existing auth guard (redirect to login if unauthenticated) still wraps the shell.
-
-Verify custom routes (dashboard, settings) continue functioning alongside generated routes.
+`router.tsx` rewritten to generate routes from `RESOURCES` array. All stub per-resource imports and hardcoded routes removed. `resourceRoutes` built via `RESOURCES.flatMap`: every resource gets `/${key}` (list) and `/${key}/:id` (detail); writable resources (those with any `showInForm: true` field) additionally get `/${key}/new` and `/${key}/:id/edit`. Read-only resources (Payments, AuditLogs) get only list and detail routes. `AppLayout` auth guard (redirect to `/login` when no token) unchanged — wraps all generated routes alongside custom `/dashboard` and `/settings`. TypeScript check passes with no errors.
 
 ### Step 15 — Implement each resource
 
