@@ -92,13 +92,9 @@ Input rendering dispatches on `field.type`: `boolean` → `Checkbox` via `Contro
 
 On submit: `create.mutateAsync` or `update.mutateAsync` then navigate to `/${config.key}`. Mutation errors shown via inline `Alert`. Loading/error states for the detail fetch handled before rendering the form.
 
-### Step 11 — Implement the Detail view component
+### ~~Step 11 — Implement the Detail view component~~ ✅
 
-Fetches one record via `getOne`. Renders fields where `showInDetail: true` as a read-only labeled key-value grid. `renderCell` overrides apply to value display.
-
-Below the grid: one section per `relatedLists` entry, each rendered as an embedded table filtered by current record id. Related lists fetch up to 50 rows (not paginated). Each uses `useResource` with FK filter as query param.
-
-Edit button in header navigates to edit form.
+`frontend/src/components/admin/ResourceDetail.tsx` — `ResourceDetail({ config })` reads `:id` from URL params, fetches record via `useResource`. Renders `showInDetail` fields as a `<dl>` key-value grid using `resolveCellValue` (respects `renderCell` overrides). Header has Back button and conditional Edit button (only when any field has `showInForm`). Below grid: one `RelatedList` sub-component per `relatedLists` entry — fetches up to 50 rows via `useResource` with FK filter passed as `filters` query param, renders as embedded table using the relation's own `fields`. Loading/error states handled for both main record and each related list independently.
 
 ### Step 12 — Implement the Shell/layout component
 
