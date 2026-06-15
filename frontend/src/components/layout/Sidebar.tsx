@@ -1,33 +1,20 @@
 import { NavLink } from 'react-router-dom'
-import {
-  BarChart3,
-  BookOpen,
-  CreditCard,
-  History,
-  Settings,
-  Split,
-  Users,
-  UserSquare2,
-} from 'lucide-react'
+import { BarChart3, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
+import type { ResourceConfig } from '@/types/resource'
 
-const navItems = [
-  { to: '/dashboard', label: 'Dashboard', icon: BarChart3 },
-  { to: '/plans', label: 'Plans', icon: BookOpen },
-  { to: '/recipients', label: 'Recipients', icon: UserSquare2 },
-  { to: '/split-configs', label: 'Split Configs', icon: Split },
-  { to: '/clients', label: 'Clients', icon: Users },
-  { to: '/payments', label: 'Payments', icon: CreditCard },
-  { to: '/history', label: 'History', icon: History },
-]
+interface SidebarProps {
+  resources: ResourceConfig[]
+}
 
-const adminItems = [
-  { to: '/users', label: 'Users', icon: Users },
-  { to: '/settings', label: 'Settings', icon: Settings },
-]
+const linkClass = ({ isActive }: { isActive: boolean }) =>
+  cn(
+    'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
+    isActive ? 'bg-gray-900 text-white' : 'text-gray-700 hover:bg-gray-200',
+  )
 
-export function Sidebar() {
+export function Sidebar({ resources }: SidebarProps) {
   const isAdmin = useAuthStore((s) => s.isAdmin)
 
   return (
@@ -36,23 +23,22 @@ export function Sidebar() {
         <span className="font-semibold text-gray-900">Subscription Hub</span>
       </div>
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-        {navItems.map(({ to, label, icon: Icon }) => (
+        <NavLink to="/dashboard" className={linkClass}>
+          <BarChart3 size={16} />
+          Dashboard
+        </NavLink>
+
+        {resources.map((resource) => (
           <NavLink
-            key={to}
-            to={to}
-            className={({ isActive }) =>
-              cn(
-                'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
-                isActive
-                  ? 'bg-gray-900 text-white'
-                  : 'text-gray-700 hover:bg-gray-200',
-              )
-            }
+            key={resource.key}
+            to={`/${resource.key}`}
+            end={false}
+            className={linkClass}
           >
-            <Icon size={16} />
-            {label}
+            {resource.pluralLabel}
           </NavLink>
         ))}
+
         {isAdmin() && (
           <>
             <div className="pt-4 pb-1 px-3">
@@ -60,23 +46,10 @@ export function Sidebar() {
                 Admin
               </span>
             </div>
-            {adminItems.map(({ to, label, icon: Icon }) => (
-              <NavLink
-                key={to}
-                to={to}
-                className={({ isActive }) =>
-                  cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
-                    isActive
-                      ? 'bg-gray-900 text-white'
-                      : 'text-gray-700 hover:bg-gray-200',
-                  )
-                }
-              >
-                <Icon size={16} />
-                {label}
-              </NavLink>
-            ))}
+            <NavLink to="/settings" className={linkClass}>
+              <Settings size={16} />
+              Settings
+            </NavLink>
           </>
         )}
       </nav>

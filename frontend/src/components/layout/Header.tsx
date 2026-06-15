@@ -6,7 +6,7 @@ export function Header() {
 
   return (
     <header className="h-14 border-b flex items-center justify-between px-6 bg-white">
-      <div />
+      <span className="text-sm font-semibold text-gray-900">Admin Panel</span>
       <div className="flex items-center gap-4">
         <span className="text-sm text-gray-600">{user?.email}</span>
         <button

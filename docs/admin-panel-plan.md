@@ -96,17 +96,9 @@ On submit: `create.mutateAsync` or `update.mutateAsync` then navigate to `/${con
 
 `frontend/src/components/admin/ResourceDetail.tsx` — `ResourceDetail({ config })` reads `:id` from URL params, fetches record via `useResource`. Renders `showInDetail` fields as a `<dl>` key-value grid using `resolveCellValue` (respects `renderCell` overrides). Header has Back button and conditional Edit button (only when any field has `showInForm`). Below grid: one `RelatedList` sub-component per `relatedLists` entry — fetches up to 50 rows via `useResource` with FK filter passed as `filters` query param, renders as embedded table using the relation's own `fields`. Loading/error states handled for both main record and each related list independently.
 
-### Step 12 — Implement the Shell/layout component
+### ~~Step 12 — Implement the Shell/layout component~~ ✅
 
-Sidebar with one entry per resource, ordered by config array. Each entry shows `pluralLabel`. Clicking navigates to list view.
-
-Route structure per resource (React Router v6 nested):
-- `/<resource-key>` → List
-- `/<resource-key>/new` → Form (create)
-- `/<resource-key>/:id` → Detail
-- `/<resource-key>/:id/edit` → Form (edit)
-
-Top bar: app title, logged-in user, logout button. Shell wraps all three generic views and passes correct resource config based on current route.
+`src/components/layout/Sidebar.tsx` updated to accept `resources: ResourceConfig[]` prop. Renders one `NavLink` per resource using `pluralLabel` and `/${key}`, with `end={false}` so nested routes (`/new`, `/:id`, `/:id/edit`) keep the entry active. Dashboard and Settings remain as custom hardcoded entries outside the resource loop. Duplicated `className` logic extracted to `linkClass` helper. `src/components/layout/AppLayout.tsx` imports `RESOURCES` from `src/resources/index.ts` and passes it to `Sidebar`. `src/components/layout/Header.tsx` updated to render "Admin Panel" title in the top-left per spec. `src/resources/index.ts` created as empty `RESOURCES: ResourceConfig[]` array — Step 13 populates it with actual configs, Step 14 uses it to generate routes in `router.tsx`.
 
 ---
 
