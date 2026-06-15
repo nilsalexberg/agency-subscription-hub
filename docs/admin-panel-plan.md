@@ -104,11 +104,9 @@ On submit: `create.mutateAsync` or `update.mutateAsync` then navigate to `/${con
 
 ## Phase 5 — Frontend: Resource Registry
 
-### Step 13 — Build the central frontend resource registry
+### ~~Step 13 — Build the central frontend resource registry~~ ✅
 
-`src/resources/index.ts` exports ordered array of all resource configs. Each resource config defined in its own file under `src/resources/` (e.g., `src/resources/clients.ts`), imported and assembled into the array.
-
-Shell reads array to build sidebar. Router reads array to generate routes. No resource-specific logic in shell or router. Custom pages (Dashboard, Settings) registered outside this array as standalone routes.
+Seven resource config files created under `src/resources/`: `recipients.ts`, `split-configs.ts`, `plans.ts`, `clients.ts`, `payments.ts`, `audit-logs.ts`, `users.ts`. Each exports a typed `ResourceConfig` constant with full `fields` (showInList/Form/Detail, required, sortable, filterable, readonly, selectOptions, relation as appropriate), `relatedLists` (Plans → Clients, Clients → Payments), and `extraActions: []`. `src/resources/index.ts` imports all seven and exports `RESOURCES: ResourceConfig[]` in registry order (Recipients → Split Configs → Plans → Clients → Payments → Audit Logs → Users). `AppLayout` already imported `RESOURCES` and passed it to `Sidebar`; no shell changes needed. TypeScript check passes with no errors.
 
 ---
 
