@@ -1,4 +1,7 @@
-.PHONY: dev up down logs migrate migration prod
+.PHONY: dev up down logs migrate migration prod install
+
+install:
+	cd backend && poetry install --no-root
 
 dev:
 	docker compose -f docker-compose.base.yml -f docker-compose.yml up -d && cd frontend && pnpm run dev

@@ -4,11 +4,25 @@ import pytest
 from app.integrations.efi.client import EfiClient
 from app.integrations.efi.exceptions import EfiAPIError
 from app.integrations.efi.schemas import (
+    Address,
     BankingBilletCustomer,
     BankingBilletPayment,
     ChargeRequest,
+    CreateSubscriptionOneStepRequest,
+    CreateSubscriptionRequest,
+    Customer,
     Item,
     Payment,
+    PlanRequest,
+    RetryChargeRequest,
+    RetryChargeCreditCard,
+    RetryChargePayment,
+    SubscriptionBilletCustomer,
+    SubscriptionBilletPayment,
+    SubscriptionCreditCardPayment,
+    SubscriptionMetadataRequest,
+    SubscriptionPayment,
+    SubscriptionPayRequest,
 )
 
 
@@ -256,3 +270,333 @@ def test_sandbox_flag_selects_sandbox_base_url():
 def test_production_flag_selects_production_base_url():
     efi = EfiClient("id", "secret", sandbox=False)
     assert efi.base_url.rstrip("/") == "https://cobrancas.api.efipay.com.br/v1"
+
+
+# --- Subscription client tests ---
+
+_AUTH_RESPONSE = httpx.Response(200, json={"access_token": "tok", "expires_in": 3600})
+
+
+def _make_handler(*route_responses: tuple[str, httpx.Response]):
+    """Build a MockTransport handler that routes by URL path suffix."""
+    routes = list(route_responses)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/authorize"):
+            return _AUTH_RESPONSE
+        for suffix, response in routes:
+            if request.url.path.endswith(suffix):
+                return response
+        raise AssertionError(f"unexpected: {request.method} {request.url.path}")
+
+    return httpx.MockTransport(handler)
+
+
+def _address() -> dict:
+    return {
+        "street": "Av. Paulista",
+        "number": "1000",
+        "neighborhood": "Bela Vista",
+        "zipcode": "01310100",
+        "city": "São Paulo",
+        "state": "SP",
+    }
+
+
+def _customer() -> dict:
+    return {
+        "name": "Gorbadoc Oldbuck",
+        "cpf": "94271564656",
+        "email": "client@server.com.br",
+        "birth": "1990-08-29",
+        "phone_number": "11999999999",
+    }
+
+
+def _sub_billet_customer() -> dict:
+    return {**{k: v for k, v in _customer().items() if k != "birth"}, "address": _address()}
+
+
+def _billet_payment() -> SubscriptionPayment:
+    return SubscriptionPayment(
+        banking_billet=SubscriptionBilletPayment(
+            customer=SubscriptionBilletCustomer.model_validate(_sub_billet_customer()),
+            expire_at="2026-12-30",
+        )
+    )
+
+
+def _card_payment() -> SubscriptionPayment:
+    return SubscriptionPayment(
+        credit_card=SubscriptionCreditCardPayment(
+            customer=Customer.model_validate(_customer()),
+            payment_token="tok_card",
+            billing_address=Address.model_validate(_address()),
+        )
+    )
+
+
+@pytest.mark.asyncio
+async def test_create_plan_sends_body_and_parses_response():
+    transport = _make_handler(
+        (
+            "/plan",
+            httpx.Response(
+                200,
+                json={
+                    "data": {
+                        "plan_id": 2758,
+                        "name": "Monthly Plan",
+                        "interval": 1,
+                        "repeats": None,
+                        "created_at": "2024-01-01 00:00:00",
+                    }
+                },
+            ),
+        )
+    )
+    efi = EfiClient("id", "secret", sandbox=True, transport=transport)
+
+    response = await efi.create_plan(PlanRequest(name="Monthly Plan", interval=1))
+
+    assert response.data.plan_id == 2758
+    assert response.data.interval == 1
+    assert response.data.repeats is None
+
+
+@pytest.mark.asyncio
+async def test_create_subscription_one_step_boleto_parses_active_response():
+    transport = _make_handler(
+        (
+            "/subscription/one-step",
+            httpx.Response(
+                200,
+                json={
+                    "data": {
+                        "subscription_id": 25329,
+                        "status": "active",
+                        "barcode": "00000.00000",
+                        "plan": {"id": 2758, "interval": 1, "repeats": None},
+                        "charge": {"id": 511843, "status": "waiting", "parcel": 1, "total": 5990},
+                        "first_execution": "31/10/2026",
+                        "total": 5990,
+                        "payment": "banking_billet",
+                    }
+                },
+            ),
+        )
+    )
+    efi = EfiClient("id", "secret", sandbox=True, transport=transport)
+
+    response = await efi.create_subscription_one_step(
+        plan_id=2758,
+        request=CreateSubscriptionOneStepRequest(
+            items=[Item(name="Plano", value=5990, amount=1)],
+            payment=_billet_payment(),
+        ),
+    )
+
+    assert response.data.subscription_id == 25329
+    assert response.data.status == "active"
+    assert response.data.plan.id == 2758
+    assert response.data.charge.id == 511843
+    assert response.data.barcode == "00000.00000"
+
+
+@pytest.mark.asyncio
+async def test_create_subscription_one_step_card_parses_active_response():
+    transport = _make_handler(
+        (
+            "/subscription/one-step",
+            httpx.Response(
+                200,
+                json={
+                    "data": {
+                        "subscription_id": 25328,
+                        "status": "active",
+                        "plan": {"id": 2758, "interval": 1, "repeats": None},
+                        "charge": {"id": 511842, "status": "waiting", "parcel": 1, "total": 5990},
+                        "first_execution": "31/10/2026",
+                        "total": 5990,
+                        "payment": "credit_card",
+                    }
+                },
+            ),
+        )
+    )
+    efi = EfiClient("id", "secret", sandbox=True, transport=transport)
+
+    response = await efi.create_subscription_one_step(
+        plan_id=2758,
+        request=CreateSubscriptionOneStepRequest(
+            items=[Item(name="Plano", value=5990, amount=1)],
+            payment=_card_payment(),
+        ),
+    )
+
+    assert response.data.subscription_id == 25328
+    assert response.data.payment == "credit_card"
+    assert response.data.barcode is None
+
+
+@pytest.mark.asyncio
+async def test_create_subscription_two_step_returns_pending():
+    transport = _make_handler(
+        (
+            "/plan/2758/subscription",
+            httpx.Response(
+                200,
+                json={
+                    "data": {
+                        "subscription_id": 25330,
+                        "status": "new",
+                        "custom_id": None,
+                        "charges": [
+                            {"charge_id": 511844, "status": "new", "total": 5990, "parcel": 1}
+                        ],
+                        "created_at": "2026-01-01 00:00:00",
+                    }
+                },
+            ),
+        )
+    )
+    efi = EfiClient("id", "secret", sandbox=True, transport=transport)
+
+    response = await efi.create_subscription(
+        plan_id=2758,
+        request=CreateSubscriptionRequest(items=[Item(name="Plano", value=5990, amount=1)]),
+    )
+
+    assert response.data.subscription_id == 25330
+    assert response.data.status == "new"
+    assert response.data.charges[0].charge_id == 511844
+
+
+@pytest.mark.asyncio
+async def test_pay_subscription_returns_active():
+    transport = _make_handler(
+        (
+            "/subscription/25330/pay",
+            httpx.Response(
+                200,
+                json={
+                    "data": {
+                        "subscription_id": 25330,
+                        "status": "active",
+                        "plan": {"id": 2758, "interval": 1, "repeats": None},
+                        "charge": {"id": 511844, "status": "waiting", "parcel": 1, "total": 5990},
+                        "first_execution": "01/02/2026",
+                        "total": 5990,
+                        "payment": "credit_card",
+                    }
+                },
+            ),
+        )
+    )
+    efi = EfiClient("id", "secret", sandbox=True, transport=transport)
+
+    response = await efi.pay_subscription(
+        subscription_id=25330,
+        request=SubscriptionPayRequest(payment=_card_payment()),
+    )
+
+    assert response.data.subscription_id == 25330
+    assert response.data.status == "active"
+    assert response.data.charge.id == 511844
+
+
+@pytest.mark.asyncio
+async def test_retry_charge_parses_response():
+    transport = _make_handler(
+        (
+            "/charge/511844/retry",
+            httpx.Response(
+                200,
+                json={
+                    "data": {
+                        "installments": 1,
+                        "installment_value": 5990,
+                        "charge_id": 511844,
+                        "status": "waiting",
+                        "total": 5990,
+                        "payment": "credit_card",
+                    }
+                },
+            ),
+        )
+    )
+    efi = EfiClient("id", "secret", sandbox=True, transport=transport)
+
+    response = await efi.retry_charge(
+        charge_id=511844,
+        request=RetryChargeRequest(
+            payment=RetryChargePayment(
+                credit_card=RetryChargeCreditCard(
+                    customer=Customer.model_validate(_customer()),
+                    billing_address=Address.model_validate(_address()),
+                    payment_token="tok_new",
+                    update_card=True,
+                )
+            )
+        ),
+    )
+
+    assert response.data.charge_id == 511844
+    assert response.data.status == "waiting"
+    assert response.data.installments == 1
+
+
+@pytest.mark.asyncio
+async def test_cancel_subscription_sends_put_to_cancel_path():
+    calls: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        if request.url.path.endswith("/authorize"):
+            return _AUTH_RESPONSE
+        assert request.url.path.endswith("/subscription/25329/cancel")
+        assert request.method == "PUT"
+        return httpx.Response(200, json={"code": 200})
+
+    efi = EfiClient("id", "secret", sandbox=True, transport=httpx.MockTransport(handler))
+    await efi.cancel_subscription(25329)
+
+    assert any("/subscription/25329/cancel" in c.url.path for c in calls)
+
+
+@pytest.mark.asyncio
+async def test_cancel_plan_sends_delete():
+    calls: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        if request.url.path.endswith("/authorize"):
+            return _AUTH_RESPONSE
+        assert request.url.path.endswith("/plan/2758")
+        assert request.method == "DELETE"
+        return httpx.Response(200, json={"code": 200})
+
+    efi = EfiClient("id", "secret", sandbox=True, transport=httpx.MockTransport(handler))
+    await efi.cancel_plan(2758)
+
+    assert any("/plan/2758" in c.url.path and c.method == "DELETE" for c in calls)
+
+
+@pytest.mark.asyncio
+async def test_update_subscription_metadata_sends_put():
+    calls: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        if request.url.path.endswith("/authorize"):
+            return _AUTH_RESPONSE
+        assert "/subscription/25329/metadata" in request.url.path
+        assert request.method == "PUT"
+        return httpx.Response(200, json={"code": 200})
+
+    efi = EfiClient("id", "secret", sandbox=True, transport=httpx.MockTransport(handler))
+    await efi.update_subscription_metadata(
+        25329, SubscriptionMetadataRequest(notification_url="https://example.com/webhook")
+    )
+
+    assert any("/subscription/25329/metadata" in c.url.path for c in calls)

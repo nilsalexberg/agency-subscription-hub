@@ -15,7 +15,23 @@ import httpx
 from app.core.config import settings
 
 from .exceptions import EfiAPIError
-from .schemas import ChargeRequest, ChargeResponse, InstallmentOption, NotificationEvent
+from .schemas import (
+    ChargeRequest,
+    ChargeResponse,
+    CreateSubscriptionOneStepRequest,
+    CreateSubscriptionRequest,
+    InstallmentOption,
+    NotificationEvent,
+    PlanRequest,
+    PlanResponse,
+    RetryChargeRequest,
+    RetryChargeResponse,
+    SubscriptionActiveResponse,
+    SubscriptionMetadataRequest,
+    SubscriptionPayRequest,
+    SubscriptionPendingResponse,
+    UpdateSubscriptionRequest,
+)
 
 PRODUCTION_BASE_URL = "https://cobrancas.api.efipay.com.br/v1"
 SANDBOX_BASE_URL = "https://cobrancas-h.api.efipay.com.br/v1"
@@ -70,6 +86,86 @@ class EfiClient:
         body = await self._request("GET", f"/notification/{token}")
         return [NotificationEvent.model_validate(item) for item in body["data"]]
 
+    async def create_plan(self, request: PlanRequest) -> PlanResponse:
+        body = await self._request(
+            "POST", "/plan", json=request.model_dump(mode="json", exclude_none=True)
+        )
+        return PlanResponse.model_validate(body)
+
+    async def update_plan_name(self, plan_id: int, name: str) -> None:
+        await self._request("PUT", f"/plan/{plan_id}", json={"name": name})
+
+    async def cancel_plan(self, plan_id: int) -> None:
+        await self._request("DELETE", f"/plan/{plan_id}")
+
+    async def create_subscription_one_step(
+        self, plan_id: int, request: CreateSubscriptionOneStepRequest
+    ) -> SubscriptionActiveResponse:
+        body = await self._request(
+            "POST",
+            f"/plan/{plan_id}/subscription/one-step",
+            json=request.model_dump(mode="json", exclude_none=True),
+        )
+        return SubscriptionActiveResponse.model_validate(body)
+
+    async def create_subscription(
+        self, plan_id: int, request: CreateSubscriptionRequest
+    ) -> SubscriptionPendingResponse:
+        body = await self._request(
+            "POST",
+            f"/plan/{plan_id}/subscription",
+            json=request.model_dump(mode="json", exclude_none=True),
+        )
+        return SubscriptionPendingResponse.model_validate(body)
+
+    async def pay_subscription(
+        self, subscription_id: int, request: SubscriptionPayRequest
+    ) -> SubscriptionActiveResponse:
+        body = await self._request(
+            "POST",
+            f"/subscription/{subscription_id}/pay",
+            json=request.model_dump(mode="json", exclude_none=True),
+        )
+        return SubscriptionActiveResponse.model_validate(body)
+
+    async def retry_charge(
+        self, charge_id: int, request: RetryChargeRequest
+    ) -> RetryChargeResponse:
+        body = await self._request(
+            "POST",
+            f"/charge/{charge_id}/retry",
+            json=request.model_dump(mode="json", exclude_none=True),
+        )
+        return RetryChargeResponse.model_validate(body)
+
+    async def update_subscription_metadata(
+        self, subscription_id: int, request: SubscriptionMetadataRequest
+    ) -> None:
+        await self._request(
+            "PUT",
+            f"/subscription/{subscription_id}/metadata",
+            json=request.model_dump(mode="json", exclude_none=True),
+        )
+
+    async def update_subscription(
+        self, subscription_id: int, request: UpdateSubscriptionRequest
+    ) -> None:
+        await self._request(
+            "PUT",
+            f"/subscription/{subscription_id}",
+            json=request.model_dump(mode="json", exclude_none=True),
+        )
+
+    async def cancel_subscription(self, subscription_id: int) -> None:
+        await self._request("PUT", f"/subscription/{subscription_id}/cancel")
+
+    async def resend_plan_link(self, charge_id: int, email: str) -> None:
+        await self._request(
+            "POST",
+            f"/charge/{charge_id}/subscription/resend",
+            json={"email": email},
+        )
+
     async def _request(self, method: str, path: str, **kwargs: Any) -> dict:
         token = await self._get_access_token()
         response = await self._http.request(
@@ -81,6 +177,8 @@ class EfiClient:
                 method, path, headers={"Authorization": f"Bearer {token}"}, **kwargs
             )
         _raise_for_error(response)
+        if not response.content:
+            return {}
         return response.json()
 
     async def _get_access_token(self, force_refresh: bool = False) -> str:
