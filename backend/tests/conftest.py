@@ -2,6 +2,8 @@ import os
 
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-testing-only")
 os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
+os.environ.setdefault("EFI_CLIENT_ID", "test-efi-client-id")
+os.environ.setdefault("EFI_CLIENT_SECRET", "test-efi-client-secret")
 
 import pytest
 from httpx import ASGITransport, AsyncClient

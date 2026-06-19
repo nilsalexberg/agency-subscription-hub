@@ -14,6 +14,13 @@ class Settings:
         self.ACCESS_TOKEN_EXPIRE_MINUTES: int = int(
             os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440")
         )
+        self.EFI_CLIENT_ID: str = os.environ["EFI_CLIENT_ID"]
+        self.EFI_CLIENT_SECRET: str = os.environ["EFI_CLIENT_SECRET"]
+        self.EFI_SANDBOX: bool = os.getenv("EFI_SANDBOX", "true").lower() in (
+            "1",
+            "true",
+            "yes",
+        )
 
 
 @lru_cache
