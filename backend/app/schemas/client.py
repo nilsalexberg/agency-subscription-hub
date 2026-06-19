@@ -12,6 +12,7 @@ class ClientRead(BaseModel):
     document: str
     plan_id: int
     efi_subscription_id: str | None = None
+    checkout_token: str | None = None
     checkout_url: str | None = None
     status: SubscriptionStatus
     cancelled_at: datetime | None = None

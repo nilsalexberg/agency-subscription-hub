@@ -29,6 +29,7 @@ class Client(Base, TimestampMixin):
     document: Mapped[str] = mapped_column(String(20), nullable=False)
     plan_id: Mapped[int] = mapped_column(ForeignKey("plans.id"), nullable=False)
     efi_subscription_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    checkout_token: Mapped[str | None] = mapped_column(String(36), nullable=True, unique=True, index=True)
     checkout_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
     status: Mapped[SubscriptionStatus] = mapped_column(
         Enum(SubscriptionStatus, values_callable=lambda obj: [e.value for e in obj]),

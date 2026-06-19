@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { LoginPage } from '@/pages/auth/LoginPage'
 import { RegisterPage } from '@/pages/auth/RegisterPage'
+import { CheckoutPage } from '@/pages/checkout/CheckoutPage'
 import { DashboardPage } from '@/pages/dashboard/DashboardPage'
 import { SettingsPage } from '@/pages/settings/SettingsPage'
 import { ResourceList } from '@/components/admin/ResourceList'
@@ -30,6 +31,7 @@ const resourceRoutes = RESOURCES.flatMap((config) => {
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
   { path: '/register', element: <RegisterPage /> },
+  { path: '/checkout/:token', element: <CheckoutPage /> },
   {
     element: <AppLayout />,
     children: [

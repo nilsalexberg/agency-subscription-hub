@@ -10,10 +10,15 @@ Custom endpoints outside the factory (e.g. checkout-link generation for clients)
 are imported and mounted separately in main.py alongside the generated router.
 """
 
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI
 
 from app.admin.contracts import RelationLoadConfig, ResourceConfig
 from app.admin.factory import build_router
+from app.admin.handlers import (
+    READ_ONLY_OVERRIDES,
+    create_client_with_checkout_token_handler,
+    method_not_allowed_handler,
+)
 from app.models.audit_log import AuditLog
 from app.models.client import Client
 from app.models.payment import Payment
@@ -28,21 +33,6 @@ from app.schemas.plan import PlanRead, PlanWrite
 from app.schemas.recipient import RecipientRead, RecipientWrite
 from app.schemas.split_config import SplitConfigRead, SplitConfigWrite
 from app.schemas.user import UserAdminWrite, UserRead
-
-
-async def _method_not_allowed() -> None:
-    raise HTTPException(
-        status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
-        detail="Method not allowed",
-    )
-
-
-# Shared override map for read-only resources — write operations return 405.
-_READ_ONLY_OVERRIDES = {
-    "create": _method_not_allowed,
-    "update": _method_not_allowed,
-    "delete": _method_not_allowed,
-}
 
 
 RESOURCE_CONFIGS: list[ResourceConfig] = [
@@ -75,13 +65,14 @@ RESOURCE_CONFIGS: list[ResourceConfig] = [
         prefix="/clients",
         search_field="name",
         relations=[RelationLoadConfig(attribute="plan", display_field="name")],
+        overrides={"create": create_client_with_checkout_token_handler},
     ),
     ResourceConfig(
         model=Payment,
         read_schema=PaymentRead,
         write_schema=PaymentWrite,
         prefix="/payments",
-        overrides=_READ_ONLY_OVERRIDES,
+        overrides=READ_ONLY_OVERRIDES,
     ),
     ResourceConfig(
         model=AuditLog,
@@ -89,7 +80,7 @@ RESOURCE_CONFIGS: list[ResourceConfig] = [
         write_schema=AuditLogWrite,
         prefix="/audit-logs",
         search_field="entity_type",
-        overrides=_READ_ONLY_OVERRIDES,
+        overrides=READ_ONLY_OVERRIDES,
     ),
     ResourceConfig(
         model=User,
@@ -98,7 +89,7 @@ RESOURCE_CONFIGS: list[ResourceConfig] = [
         prefix="/users",
         search_field="email",
         # User creation with a password is handled by the auth module, not the factory.
-        overrides={"create": _method_not_allowed},
+        overrides={"create": method_not_allowed_handler},
     ),
 ]
 

@@ -101,6 +101,18 @@ export const clientsConfig: ResourceConfig = {
       readonly: true,
     },
     {
+      key: 'checkout_token',
+      label: 'Checkout Token',
+      type: 'text',
+      showInList: false,
+      showInForm: false,
+      showInDetail: true,
+      required: false,
+      sortable: false,
+      filterable: false,
+      readonly: true,
+    },
+    {
       key: 'checkout_url',
       label: 'Checkout URL',
       type: 'text',
