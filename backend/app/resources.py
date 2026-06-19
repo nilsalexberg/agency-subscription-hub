@@ -104,6 +104,6 @@ RESOURCE_CONFIGS: list[ResourceConfig] = [
 
 
 def register_admin_resources(app: FastAPI) -> None:
-    """Mount all admin CRUD routers on the app under the /admin prefix."""
+    """Mount all admin CRUD routers on the app under the /api/admin prefix."""
     for config in RESOURCE_CONFIGS:
-        app.include_router(build_router(config), prefix="/admin")
+        app.include_router(build_router(config), prefix="/api/admin")

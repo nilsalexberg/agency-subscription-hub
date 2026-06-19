@@ -86,13 +86,13 @@ def test_writable_resources_have_no_write_overrides():
 @pytest.mark.parametrize(
     "path",
     [
-        "/admin/recipients/",
-        "/admin/split-configs/",
-        "/admin/plans/",
-        "/admin/clients/",
-        "/admin/payments/",
-        "/admin/audit-logs/",
-        "/admin/users/",
+        "/api/admin/recipients/",
+        "/api/admin/split-configs/",
+        "/api/admin/plans/",
+        "/api/admin/clients/",
+        "/api/admin/payments/",
+        "/api/admin/audit-logs/",
+        "/api/admin/users/",
     ],
 )
 async def test_list_route_mounted_and_requires_auth(client, path):
@@ -121,21 +121,21 @@ async def admin_token(db_session) -> str:
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("prefix", ["/admin/payments", "/admin/audit-logs"])
+@pytest.mark.parametrize("prefix", ["/api/admin/payments", "/api/admin/audit-logs"])
 async def test_read_only_create_returns_405(client, admin_token, prefix):
     res = await client.post(f"{prefix}/", json={}, headers=_auth(admin_token))
     assert res.status_code == 405
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("prefix", ["/admin/payments", "/admin/audit-logs"])
+@pytest.mark.parametrize("prefix", ["/api/admin/payments", "/api/admin/audit-logs"])
 async def test_read_only_update_returns_405(client, admin_token, prefix):
     res = await client.put(f"{prefix}/1", json={}, headers=_auth(admin_token))
     assert res.status_code == 405
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("prefix", ["/admin/payments", "/admin/audit-logs"])
+@pytest.mark.parametrize("prefix", ["/api/admin/payments", "/api/admin/audit-logs"])
 async def test_read_only_delete_returns_405(client, admin_token, prefix):
     res = await client.delete(f"{prefix}/1", headers=_auth(admin_token))
     assert res.status_code == 405
@@ -144,7 +144,7 @@ async def test_read_only_delete_returns_405(client, admin_token, prefix):
 @pytest.mark.asyncio
 async def test_user_create_returns_405(client, admin_token):
     res = await client.post(
-        "/admin/users/",
+        "/api/admin/users/",
         json={"email": "new@test.com", "role": "viewer", "is_active": True},
         headers=_auth(admin_token),
     )
@@ -154,7 +154,7 @@ async def test_user_create_returns_405(client, admin_token):
 @pytest.mark.asyncio
 async def test_read_only_list_and_retrieve_still_work(client, admin_token):
     """Read-only means no writes — list and retrieve must still function."""
-    res = await client.get("/admin/payments/", headers=_auth(admin_token))
+    res = await client.get("/api/admin/payments/", headers=_auth(admin_token))
     assert res.status_code == 200
     body = res.json()
     assert body["items"] == []
